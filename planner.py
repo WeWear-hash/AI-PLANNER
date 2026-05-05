@@ -72,16 +72,20 @@ def push_to_calendar(plan_text):
             body=event
         ).execute()
 
+from datetime import timezone
+
 def clear_today_events(service):
     now = now_local()
-    start_day = now.replace(hour=0, minute=0, second=0).isoformat()
-    end_day = now.replace(hour=23, minute=59, second=59).isoformat()
+
+    start_day = now.replace(hour=0, minute=0, second=0, microsecond=0).isoformat() + "+04:00"
+    end_day = now.replace(hour=23, minute=59, second=59, microsecond=0).isoformat() + "+04:00"
 
     events = service.events().list(
         calendarId="primary",
         timeMin=start_day,
         timeMax=end_day,
         singleEvents=True,
+        orderBy="startTime"
     ).execute()
 
     for event in events.get("items", []):
