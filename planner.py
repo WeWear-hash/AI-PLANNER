@@ -16,6 +16,80 @@ def get_calendar_service():
     creds = Credentials.from_authorized_user_info(token)
     return build("calendar", "v3", credentials=creds)
 
+from datetime import datetime, timedelta
+
+def parse_event(line, date_str):
+    if " | " not in line:
+        return None
+
+    try:
+        time_part, title = line.split(" | ", 1)
+        start, end = time_part.split("-")
+
+        start_dt = datetime.fromisoformat(f"{date_str}T{start}:00")
+        end_dt = datetime.fromisoformat(f"{date_str}T{end}:00")
+
+        # Handle midnight crossover
+        if end_dt <= start_dt:
+            end_dt += timedelta(days=1)
+
+        return {
+            "summary": title.strip(),
+            "start": {
+                "dateTime": start_dt.isoformat(),
+                "timeZone": "Asia/Dubai",
+            },
+            "end": {
+                "dateTime": end_dt.isoformat(),
+                "timeZone": "Asia/Dubai",
+            },
+            "reminders": {
+                "useDefault": False,
+                "overrides": [
+                    {"method": "popup", "minutes": 0},
+                ],
+            },
+        }
+    except Exception:
+        return None
+
+def push_to_calendar(plan_text):
+    service = get_calendar_service()
+
+    today = local_date_str()  # ✅ FIXED timezone
+
+    # 🔥 Prevent duplicates
+    clear_today_events(service)
+
+    for line in plan_text.split("\n"):
+        event = parse_event(line, today)
+
+        if not event:
+            continue
+
+        service.events().insert(
+            calendarId="primary",
+            body=event
+        ).execute()
+
+def clear_today_events(service):
+    now = now_local()
+    start_day = now.replace(hour=0, minute=0, second=0).isoformat()
+    end_day = now.replace(hour=23, minute=59, second=59).isoformat()
+
+    events = service.events().list(
+        calendarId="primary",
+        timeMin=start_day,
+        timeMax=end_day,
+        singleEvents=True,
+    ).execute()
+
+    for event in events.get("items", []):
+        service.events().delete(
+            calendarId="primary",
+            eventId=event["id"]
+        ).execute()
+
 NOTION_API_KEY = os.environ["NOTION_API_KEY"]
 GROQ_API_KEY = os.environ["GROQ_API_KEY"]
 
@@ -470,6 +544,7 @@ def main() -> None:
     final_blocks = build_final_plan(tasks, free_slots, fixed_blocks, ordered_task_names)
 
     plan_text = render_plan(final_blocks)
+    push_to_calendar(plan_text)
     date_value = local_date_str()
     title = f"Plan for {now_local().strftime('%a %b %d %Y')}"
 
