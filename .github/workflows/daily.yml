@@ -2,7 +2,7 @@ name: Daily Planner
 
 on:
   schedule:
-    - cron: "0 0 * * *" # 4:00 AM UAE time = 00:00 UTC
+    - cron: "0 0 * * *"  # هذا = 4AM في الإمارات
   workflow_dispatch:
 
 jobs:
@@ -13,22 +13,20 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set up Python
+      - name: Setup Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
 
-      - name: Install requests
-        run: pip install requests
+      - name: Install dependencies
+        run: pip install -r requirements.txt
 
       - name: Run planner
+        run: python planner.py
         env:
           NOTION_API_KEY: ${{ secrets.NOTION_API_KEY }}
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
           TASKS_DB_ID: ${{ secrets.TASKS_DB_ID }}
           SCHEDULE_DB_ID: ${{ secrets.SCHEDULE_DB_ID }}
           DAILY_PLAN_DB_ID: ${{ secrets.DAILY_PLAN_DB_ID }}
-          CITY: ${{ secrets.CITY }}
-          COUNTRY: ${{ secrets.COUNTRY }}
-          LOCAL_UTC_OFFSET_HOURS: ${{ secrets.LOCAL_UTC_OFFSET_HOURS }}
-        run: python planner.py
+          GOOGLE_TOKEN: ${{ secrets.GOOGLE_TOKEN }}
