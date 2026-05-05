@@ -7,6 +7,14 @@ from typing import Any, Dict, List, Optional
 
 import requests
 
+import os, json
+from google.oauth2.credentials import Credentials
+from googleapiclient.discovery import build
+
+def get_calendar_service():
+    token = json.loads(os.environ["GOOGLE_TOKEN"])
+    creds = Credentials.from_authorized_user_info(token)
+    return build("calendar", "v3", credentials=creds)
 
 NOTION_API_KEY = os.environ["NOTION_API_KEY"]
 GROQ_API_KEY = os.environ["GROQ_API_KEY"]
